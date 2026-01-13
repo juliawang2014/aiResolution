@@ -17,7 +17,7 @@ class Goal(Base):
     status = Column(String, default="active")  # active, completed, paused, cancelled
     
     # Relationships
-    progress_entries = relationship("ProgressEntry", back_populates="goal")
+    progress_entries = relationship("ProgressEntry", back_populates="goal", order_by="ProgressEntry.created_at.desc()")
 
 class ProgressEntry(Base):
     __tablename__ = "progress_entries"

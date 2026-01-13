@@ -4,9 +4,10 @@ import { Goal } from '../types'
 interface ProgressUpdateModalProps {
   goal: Goal
   onClose: () => void
+  onProgressUpdated?: (goalId: number) => void
 }
 
-export function ProgressUpdateModal({ goal, onClose }: ProgressUpdateModalProps) {
+export function ProgressUpdateModal({ goal, onClose, onProgressUpdated }: ProgressUpdateModalProps) {
   const [updateText, setUpdateText] = useState('')
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState('')
@@ -33,6 +34,11 @@ export function ProgressUpdateModal({ goal, onClose }: ProgressUpdateModalProps)
         const result = await response.json()
         setFeedback(result.feedback)
         setUpdateText('')
+
+        // Notify parent that progress was updated
+        if (onProgressUpdated) {
+          onProgressUpdated(goal.id)
+        }
 
         // Close modal after showing feedback for a moment
         setTimeout(() => {

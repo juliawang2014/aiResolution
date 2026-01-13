@@ -7,9 +7,10 @@ import { format } from 'date-fns'
 interface GoalCardProps {
   goal: Goal
   onGoalDeleted?: (goalId: number) => void
+  onProgressUpdated?: (goalId: number) => void
 }
 
-export function GoalCard({ goal, onGoalDeleted }: GoalCardProps) {
+export function GoalCard({ goal, onGoalDeleted, onProgressUpdated }: GoalCardProps) {
   const [showUpdateModal, setShowUpdateModal] = useState(false)
   const [showDeleteModal, setShowDeleteModal] = useState(false)
 
@@ -119,22 +120,34 @@ export function GoalCard({ goal, onGoalDeleted }: GoalCardProps) {
           <div className="mb-4">
             <h4 className="text-sm font-medium text-gray-700 mb-2">Latest Update</h4>
             <div className="bg-gray-50 rounded p-3">
-              <p className="text-sm text-gray-600 line-clamp-2">
-                {goal.progress_entries[0].text}
-              </p>
-              <div className="flex items-center mt-2 space-x-2">
-                {goal.progress_entries[0].sentiment && (
-                  <span className={`px-2 py-1 rounded text-xs ${goal.progress_entries[0].sentiment === 'positive' ? 'bg-green-100 text-green-700' :
-                    goal.progress_entries[0].sentiment === 'negative' ? 'bg-red-100 text-red-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                    {goal.progress_entries[0].sentiment}
-                  </span>
-                )}
-                <span className="text-xs text-gray-500">
-                  {format(new Date(goal.progress_entries[0].created_at), 'MMM dd')}
-                </span>
-              </div>
+              {(() => {
+                // Sort progress entries by created_at descending to ensure latest is first
+                const sortedEntries = [...goal.progress_entries].sort((a, b) =>
+                  new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                )
+                const latestEntry = sortedEntries[0]
+
+                return (
+                  <>
+                    <p className="text-sm text-gray-600 line-clamp-2">
+                      {latestEntry.text}
+                    </p>
+                    <div className="flex items-center mt-2 space-x-2">
+                      {latestEntry.sentiment && (
+                        <span className={`px-2 py-1 rounded text-xs ${latestEntry.sentiment === 'positive' ? 'bg-green-100 text-green-700' :
+                          latestEntry.sentiment === 'negative' ? 'bg-red-100 text-red-700' :
+                            'bg-gray-100 text-gray-700'
+                          }`}>
+                          {latestEntry.sentiment}
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-500">
+                        {format(new Date(latestEntry.created_at), 'MMM dd')}
+                      </span>
+                    </div>
+                  </>
+                )
+              })()}
             </div>
           </div>
         )}
@@ -152,6 +165,7 @@ export function GoalCard({ goal, onGoalDeleted }: GoalCardProps) {
         <ProgressUpdateModal
           goal={goal}
           onClose={() => setShowUpdateModal(false)}
+          onProgressUpdated={onProgressUpdated}
         />
       )}
 

@@ -71,6 +71,19 @@ export default function Dashboard() {
     setShowAddForm(false)
   }
 
+  const handleProgressUpdated = async (goalId: number) => {
+    // Refresh the specific goal data to ensure we have the latest progress entries
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/goals/${goalId}`)
+      if (response.ok) {
+        const updatedGoal = await response.json()
+        updateGoal(updatedGoal)
+      }
+    } catch (error) {
+      console.error('Failed to refresh goal data:', error)
+    }
+  }
   const handleGoalDeleted = (goalId: number) => {
     removeGoal(goalId)
     // Refresh stats after deletion
