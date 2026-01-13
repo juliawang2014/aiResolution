@@ -22,6 +22,42 @@ A comprehensive goal tracking system with natural language processing and real-t
 - **Styling**: Tailwind CSS with custom components
 - **Deployment**: Docker containers with multi-stage builds
 
+## 🧪 Testing
+
+### Run All Tests
+```bash
+# Automated test runner
+./run_tests.sh
+
+# Or manually
+cd tests
+python run_tests.py
+```
+
+### Individual Tests
+```bash
+# Database connection
+python tests/api/test_simple_db.py
+
+# Delete functionality
+python tests/api/test_delete_only.py
+
+# API endpoints (requires server running)
+python tests/api/test_api.py
+
+# Debug delete issues
+python tests/api/debug_delete_issue.py
+
+# Start debug server
+python tests/debug/debug_start.py
+```
+
+### Frontend Testing
+```bash
+# Open in browser for manual testing
+open tests/frontend/test_frontend_delete.html
+```
+
 ## 🚀 Quick Start
 
 ### Option 1: Automated Setup (Recommended)
@@ -159,7 +195,7 @@ docker run -p 8000:8000 -v $(pwd)/data:/app/data goal-tracker
 ### Environment Variables
 Copy `.env.example` to `.env` and configure:
 ```bash
-DATABASE_URL=sqlite:///./data/goals.db
+DATABASE_URL=sqlite:///./goals.db
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
@@ -172,9 +208,23 @@ python scripts/sample_data.py
 
 This creates 5 example goals with realistic progress updates to demonstrate the system.
 
-## 🔧 Development
+## 📦 Dependencies
 
-### Project Structure
+### Backend (Python)
+- **FastAPI** - Modern web framework
+- **SQLAlchemy** - Database ORM
+- **Pydantic** - Data validation
+- **WebSockets** - Real-time communication
+- **Uvicorn** - ASGI server
+
+### Frontend (React/Next.js)
+- **Next.js** - React framework
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **Recharts** - Data visualization
+- **date-fns** - Date utilities
+
+## 🔧 Development
 ```
 ├── app/                    # FastAPI backend
 │   ├── main.py            # API routes and WebSocket

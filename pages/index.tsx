@@ -5,16 +5,25 @@ import { StatsOverview } from '../components/StatsOverview'
 import { AddGoalForm } from '../components/AddGoalForm'
 import { ProgressChart } from '../components/ProgressChart'
 import { useWebSocket } from '../hooks/useWebSocket'
+import { useGoals } from '../hooks/useGoals'
 import { Goal, DashboardStats } from '../types'
 
 export default function Dashboard() {
-  const [goals, setGoals] = useState<Goal[]>([])
+  const { goals, addGoal, updateGoal, removeGoal, setAllGoals } = useGoals()
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
 
   // WebSocket connection for real-time updates
-  const { lastMessage, connectionStatus } = useWebSocket('ws://localhost:8000/ws')
+  const wsUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000').replace('http', 'ws') + '/ws'
+  const { lastMessage, connectionStatus } = useWebSocket(wsUrl)
+
+  // Debug WebSocket messages
+  useEffect(() => {
+    if (lastMessage) {
+      console.log('WebSocket message received:', lastMessage.data)
+    }
+  }, [lastMessage])
 
   // Load initial data
   useEffect(() => {
@@ -27,20 +36,27 @@ export default function Dashboard() {
       const data = JSON.parse(lastMessage.data)
 
       if (data.type === 'goal_created') {
-        setGoals(prev => [...prev, data.data])
+        console.log('Adding goal from WebSocket:', data.data.id)
+        addGoal(data.data)
       } else if (data.type === 'progress_updated') {
-        setGoals(prev => prev.map(goal =>
-          goal.id === data.data.goal_id ? data.data.updated_goal : goal
-        ))
+        console.log('Updating goal progress from WebSocket:', data.data.goal_id)
+        updateGoal(data.data.updated_goal)
+      } else if (data.type === 'goal_deleted') {
+        console.log('Removing goal from WebSocket:', data.data.goal_id)
+        removeGoal(data.data.goal_id)
+      } else if (data.type === 'goal_updated') {
+        console.log('Updating goal from WebSocket:', data.data.id)
+        updateGoal(data.data)
       }
     }
-  }, [lastMessage])
+  }, [lastMessage, addGoal, updateGoal, removeGoal])
 
   const fetchDashboardData = async () => {
     try {
-      const response = await fetch('http://localhost:8000/dashboard')
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/dashboard`)
       const data = await response.json()
-      setGoals(data.goals)
+      setAllGoals(data.goals)
       setStats(data.statistics)
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error)
@@ -50,8 +66,15 @@ export default function Dashboard() {
   }
 
   const handleGoalAdded = (newGoal: Goal) => {
-    setGoals(prev => [...prev, newGoal])
+    // Don't add directly here - let WebSocket handle it for real-time sync
+    // Just close the form
     setShowAddForm(false)
+  }
+
+  const handleGoalDeleted = (goalId: number) => {
+    removeGoal(goalId)
+    // Refresh stats after deletion
+    fetchDashboardData()
   }
 
   if (loading) {
@@ -125,7 +148,11 @@ export default function Dashboard() {
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {goals.map((goal) => (
-                  <GoalCard key={goal.id} goal={goal} />
+                  <GoalCard
+                    key={goal.id}
+                    goal={goal}
+                    onGoalDeleted={handleGoalDeleted}
+                  />
                 ))}
               </div>
             )}

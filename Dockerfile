@@ -29,13 +29,13 @@ COPY app/ ./app/
 COPY --from=frontend-builder /app/out ./static/
 
 # Create database directory
-RUN mkdir -p /app/data
+RUN mkdir -p /app
 
 # Expose port
 EXPOSE 8000
 
 # Set environment variables
-ENV DATABASE_URL=sqlite:///./data/goals.db
+ENV DATABASE_URL=sqlite:///./goals.db
 ENV PYTHONPATH=/app
 
 # Run the application

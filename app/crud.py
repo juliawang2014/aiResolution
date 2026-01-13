@@ -10,7 +10,7 @@ def get_goals(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Goal).offset(skip).limit(limit).all()
 
 def create_goal(db: Session, goal: schemas.GoalCreate):
-    db_goal = models.Goal(**goal.dict())
+    db_goal = models.Goal(**goal.model_dump())
     db.add(db_goal)
     db.commit()
     db.refresh(db_goal)
@@ -27,7 +27,7 @@ def update_goal_progress(db: Session, goal_id: int, progress: float):
     return db_goal
 
 def create_progress_entry(db: Session, progress: schemas.ProgressEntryCreate):
-    db_progress = models.ProgressEntry(**progress.dict())
+    db_progress = models.ProgressEntry(**progress.model_dump())
     db.add(db_progress)
     db.commit()
     db.refresh(db_progress)
@@ -60,3 +60,26 @@ def get_goal_statistics(db: Session):
         "average_progress": round(avg_progress, 2),
         "goals_by_category": goals_by_category
     }
+def delete_goal(db: Session, goal_id: int):
+    """Delete a goal and all its progress entries"""
+    db_goal = db.query(models.Goal).filter(models.Goal.id == goal_id).first()
+    if db_goal:
+        # Delete all progress entries first (due to foreign key constraint)
+        db.query(models.ProgressEntry).filter(models.ProgressEntry.goal_id == goal_id).delete()
+        
+        # Delete the goal
+        db.delete(db_goal)
+        db.commit()
+        return True
+    return False
+
+def update_goal(db: Session, goal_id: int, goal_update: schemas.GoalUpdate):
+    """Update goal details"""
+    db_goal = db.query(models.Goal).filter(models.Goal.id == goal_id).first()
+    if db_goal:
+        update_data = goal_update.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(db_goal, field, value)
+        db.commit()
+        db.refresh(db_goal)
+    return db_goal

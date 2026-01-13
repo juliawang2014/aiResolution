@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Goal Delete</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+
+    .goal {
+      border: 1px solid #ccc;
+      padding: 10px;
+      margin: 10px 0;
+    }
+
+    button {
+      margin: 5px;
+      padding: 5px 10px;
+    }
+
+    .delete {
+      background: #ff4444;
+      color: white;
+    }
+
+    .create {
+      background: #4444ff;
+      color: white;
+    }
+
+    #log {
+      background: #f0f0f0;
+      padding: 10px;
+      margin: 10px 0;
+      height: 200px;
+      overflow-y: scroll;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>🗑️ Goal Delete Test</h1>
+
+  <div>
+    <button class="create" onclick="createTestGoal()">Create Test Goal</button>
+    <button onclick="loadGoals()">Refresh Goals</button>
+  </div>
+
+  <div id="goals"></div>
+
+  <div id="log"></div>
+
+  <script>
+    const API_URL = 'http://localhost:8000';
+
+    function log(message) {
+      const logDiv = document.getElementById('log');
+      logDiv.innerHTML += new Date().toLocaleTimeString() + ': ' + message + '<br>';
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    async function createTestGoal() {
+      try {
+        log('Creating test goal...');
+        const response = await fetch(`${API_URL}/goals`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: 'Test Delete Goal',
+            description: 'This goal will be deleted',
+            category: 'Test'
+          })
+        });
+
+        if (response.ok) {
+          const goal = await response.json();
+          log(`✅ Created goal: ${goal.title} (ID: ${goal.id})`);
+          loadGoals();
+        } else {
+          const error = await response.text();
+          log(`❌ Failed to create goal: ${response.status} - ${error}`);
+        }
+      } catch (error) {
+        log(`❌ Error creating goal: ${error}`);
+      }
+    }
+
+    async function deleteGoal(goalId, goalTitle) {
+      if (!confirm(`Delete goal "${goalTitle}"?`)) return;
+
+      try {
+        log(`Deleting goal ${goalId}...`);
+        const response = await fetch(`${API_URL}/goals/${goalId}`, {
+          method: 'DELETE'
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          log(`✅ ${result.message}`);
+          loadGoals();
+        } else {
+          const error = await response.text();
+          log(`❌ Failed to delete goal: ${response.status} - ${error}`);
+        }
+      } catch (error) {
+        log(`❌ Error deleting goal: ${error}`);
+      }
+    }
+
+    async function loadGoals() {
+      try {
+        log('Loading goals...');
+        const response = await fetch(`${API_URL}/goals`);
+
+        if (response.ok) {
+          const goals = await response.json();
+          log(`✅ Loaded ${goals.length} goals`);
+          displayGoals(goals);
+        } else {
+          log(`❌ Failed to load goals: ${response.status}`);
+        }
+      } catch (error) {
+        log(`❌ Error loading goals: ${error}`);
+      }
+    }
+
+    function displayGoals(goals) {
+      const goalsDiv = document.getElementById('goals');
+      goalsDiv.innerHTML = '<h2>Goals:</h2>';
+
+      if (goals.length === 0) {
+        goalsDiv.innerHTML += '<p>No goals found.</p>';
+        return;
+      }
+
+      goals.forEach(goal => {
+        const goalDiv = document.createElement('div');
+        goalDiv.className = 'goal';
+        goalDiv.innerHTML = `
+                    <h3>${goal.title}</h3>
+                    <p>${goal.description || 'No description'}</p>
+                    <p>Category: ${goal.category || 'None'} | Progress: ${Math.round(goal.progress_percentage)}%</p>
+                    <button class="delete" onclick="deleteGoal(${goal.id}, '${goal.title}')">Delete</button>
+                `;
+        goalsDiv.appendChild(goalDiv);
+      });
+    }
+
+    // Load goals on page load
+    window.onload = () => {
+      log('Page loaded, testing delete functionality...');
+      loadGoals();
+    };
+  </script>
+</body>
+
+</html>

@@ -1,5 +1,4 @@
 import re
-import spacy
 from typing import Dict, List, Any
 from datetime import datetime
 import random
@@ -7,7 +6,7 @@ import random
 class NLPProcessor:
     def __init__(self):
         # For now, we'll use simple rule-based processing
-        # In production, you'd load spaCy models: nlp = spacy.load("en_core_web_sm")
+        # In production, you could load spaCy models for more advanced NLP
         self.progress_keywords = {
             "high": ["completed", "finished", "done", "achieved", "accomplished", "success"],
             "medium": ["progress", "working", "started", "began", "improving", "advancing"],

@@ -12,7 +12,10 @@ from .database import SessionLocal, engine
 from .nlp_processor import NLPProcessor
 from .websocket_manager import ConnectionManager
 
+# Create database tables
+print("🔧 Creating database tables...")
 models.Base.metadata.create_all(bind=engine)
+print("✅ Database tables created")
 
 app = FastAPI(title="Goal Tracker API", version="1.0.0")
 
@@ -48,15 +51,24 @@ async def root():
 @app.post("/goals", response_model=schemas.Goal)
 async def create_goal(goal: schemas.GoalCreate, db: Session = Depends(get_db)):
     """Create a new goal"""
-    db_goal = crud.create_goal(db=db, goal=goal)
-    
-    # Broadcast to all connected clients
-    await manager.broadcast({
-        "type": "goal_created",
-        "data": schemas.Goal.from_orm(db_goal).dict()
-    })
-    
-    return db_goal
+    try:
+        print(f"Received goal data: {goal}")  # Debug log
+        db_goal = crud.create_goal(db=db, goal=goal)
+        print(f"Created goal in database: {db_goal.id}")  # Debug log
+        
+        # Broadcast to all connected clients
+        goal_data = schemas.Goal.model_validate(db_goal).model_dump(mode='json')
+        await manager.broadcast({
+            "type": "goal_created",
+            "data": goal_data
+        })
+        
+        return db_goal
+    except Exception as e:
+        print(f"Error creating goal: {e}")  # Debug log
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to create goal: {str(e)}")
 
 @app.get("/goals", response_model=List[schemas.Goal])
 async def list_goals(db: Session = Depends(get_db)):
@@ -70,6 +82,69 @@ async def get_goal(goal_id: int, db: Session = Depends(get_db)):
     if db_goal is None:
         raise HTTPException(status_code=404, detail="Goal not found")
     return db_goal
+
+@app.delete("/goals/{goal_id}")
+async def delete_goal(goal_id: int, db: Session = Depends(get_db)):
+    """Delete a goal and all its progress entries"""
+    try:
+        # Check if goal exists
+        db_goal = crud.get_goal(db, goal_id=goal_id)
+        if db_goal is None:
+            raise HTTPException(status_code=404, detail="Goal not found")
+        
+        # Store goal data for broadcast before deletion
+        goal_data = schemas.Goal.model_validate(db_goal).model_dump(mode='json')
+        
+        # Delete the goal
+        success = crud.delete_goal(db=db, goal_id=goal_id)
+        
+        if success:
+            # Broadcast deletion to all connected clients
+            await manager.broadcast({
+                "type": "goal_deleted",
+                "data": {
+                    "goal_id": goal_id,
+                    "deleted_goal": goal_data
+                }
+            })
+            
+            return {"message": "Goal deleted successfully", "goal_id": goal_id}
+        else:
+            raise HTTPException(status_code=500, detail="Failed to delete goal")
+            
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error deleting goal: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to delete goal: {str(e)}")
+
+@app.put("/goals/{goal_id}", response_model=schemas.Goal)
+async def update_goal(goal_id: int, goal_update: schemas.GoalUpdate, db: Session = Depends(get_db)):
+    """Update goal details"""
+    try:
+        db_goal = crud.get_goal(db, goal_id=goal_id)
+        if db_goal is None:
+            raise HTTPException(status_code=404, detail="Goal not found")
+        
+        updated_goal = crud.update_goal(db=db, goal_id=goal_id, goal_update=goal_update)
+        
+        # Broadcast update to all connected clients
+        await manager.broadcast({
+            "type": "goal_updated",
+            "data": schemas.Goal.model_validate(updated_goal).model_dump(mode='json')
+        })
+        
+        return updated_goal
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating goal: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Failed to update goal: {str(e)}")
 
 @app.post("/goals/{goal_id}/update")
 async def update_goal_progress(
@@ -108,9 +183,9 @@ async def update_goal_progress(
         "type": "progress_updated",
         "data": {
             "goal_id": goal_id,
-            "progress": schemas.ProgressEntry.from_orm(db_progress).dict(),
+            "progress": schemas.ProgressEntry.model_validate(db_progress).model_dump(mode='json'),
             "feedback": feedback,
-            "updated_goal": schemas.Goal.from_orm(crud.get_goal(db, goal_id)).dict()
+            "updated_goal": schemas.Goal.model_validate(crud.get_goal(db, goal_id)).model_dump(mode='json')
         }
     })
     
@@ -127,7 +202,7 @@ async def get_dashboard_data(db: Session = Depends(get_db)):
     stats = crud.get_goal_statistics(db)
     
     return {
-        "goals": [schemas.Goal.from_orm(goal).dict() for goal in goals],
+        "goals": [schemas.Goal.model_validate(goal).model_dump(mode='json') for goal in goals],
         "statistics": stats,
         "last_updated": "now"
     }

@@ -35,3 +35,43 @@
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* Delete button hover effects */
+.delete-button {
+  @apply p-1 text-gray-400 hover:text-red-600 transition-colors duration-200;
+}
+
+.delete-button:hover {
+  @apply bg-red-50 rounded;
+}
+
+/* Confirmation modal animations */
+.modal-overlay {
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

@@ -17,10 +17,20 @@ export function AddGoalForm({ onClose, onGoalAdded }: AddGoalFormProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Prevent multiple submissions
+    if (loading) {
+      console.log('Already submitting, ignoring duplicate submission')
+      return
+    }
+
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:8000/goals', {
+      console.log('Submitting goal:', formData) // Debug log
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/goals`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -31,14 +41,20 @@ export function AddGoalForm({ onClose, onGoalAdded }: AddGoalFormProps) {
         }),
       })
 
+      console.log('Response status:', response.status) // Debug log
+
       if (response.ok) {
         const newGoal = await response.json()
+        console.log('Created goal:', newGoal) // Debug log
         onGoalAdded(newGoal)
       } else {
-        console.error('Failed to create goal')
+        const errorText = await response.text()
+        console.error('Failed to create goal:', response.status, errorText)
+        alert(`Failed to create goal: ${response.status} - ${errorText}`)
       }
     } catch (error) {
       console.error('Error creating goal:', error)
+      alert(`Error creating goal: ${error}`)
     } finally {
       setLoading(false)
     }

@@ -5,24 +5,6 @@ services:
     build: .
     ports:
       - "8000:8000"
-    volumes:
-      - ./data:/app/data
     environment:
-      - DATABASE_URL=sqlite:///./data/goals.db
+      - DATABASE_URL=sqlite:///./goals.db
     restart: unless-stopped
-
-  frontend-dev:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    ports:
-      - "3000:3000"
-    volumes:
-      - .:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-    depends_on:
-      - goal-tracker
-    profiles:
-      - dev

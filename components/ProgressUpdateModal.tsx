@@ -18,7 +18,8 @@ export function ProgressUpdateModal({ goal, onClose }: ProgressUpdateModalProps)
     setLoading(true)
 
     try {
-      const response = await fetch(`http://localhost:8000/goals/${goal.id}/update`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+      const response = await fetch(`${apiUrl}/goals/${goal.id}/update`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
